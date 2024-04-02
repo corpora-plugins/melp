@@ -187,6 +187,23 @@ REGISTRY = [
                 "inherited": False
             },
             {
+                "name": "repository",
+                "label": "Repository",
+                "indexed": False,
+                "unique": False,
+                "multiple": False,
+                "in_lists": True,
+                "type": "cross_reference",
+                "choices": [],
+                "cross_reference_type": "Entity",
+                "has_intensity": False,
+                "synonym_file": None,
+                "indexed_with": [],
+                "unique_with": [],
+                "stats": {},
+                "inherited": False
+            },
+            {
                 "name": "images",
                 "label": "Images",
                 "indexed": False,

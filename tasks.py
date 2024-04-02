@@ -224,7 +224,29 @@ Delete Existing:   {1}
                     letter.title = title_tag.get_text()
 
                 if not letter.title:
-                    job.report("Unable to determine title of letter.")
+                    job.report("Unable to determine title of letter (tei -> fileDesc -> titleStmt -> title).")
+
+                # --------------------------------- #
+                # repository                        #
+                # --------------------------------- #
+                org_tag = file_desc.editionStmt.respStmt.find('orgName')
+                repo_added = False
+                if org_tag:
+                    org_name = org_tag.get_text().strip()
+                    if org_name:
+                        if 'ref' in org_tag.attrs:
+                            org_uri = org_tag['ref']
+
+                        org = corpus.get_or_create_content('Entity', {'name': org_name, 'entity_type': 'ORG'})
+                        if org_uri not in org.uris:
+                            org.uris.append(org_uri)
+                            org.save()
+
+                        letter.repository = org.id
+                        repo_added = True
+
+                if not repo_added:
+                    job.report("Unable to determine the repository for this letter (tei -> fileDesc -> editionStmt -> respStmt -> orgName).")
 
                 # --------------------------------- #
                 # author and recipient              #
@@ -246,10 +268,10 @@ Delete Existing:   {1}
                             letter.recipient = corpus.get_content_dbref('Entity', recip_id)
 
                 if not letter.author:
-                    job.report("Unable to determine author.")
+                    job.report("Unable to determine author (tei -> fileDesc -> sourceDesc -> persName[1st]).")
 
                 if not letter.recipient:
-                    job.report("Unable to determine recipient.")
+                    job.report("Unable to determine recipient (tei -> fileDesc -> sourceDesc -> persName[2nd]).")
 
                 # --------------------------------- #
                 # date of composition               #
@@ -263,7 +285,7 @@ Delete Existing:   {1}
                     letter.date_composed = parser.parse(when)
 
                 if not letter.date_composed:
-                    job.report("Unable to determine date of composition.")
+                    job.report("Unable to determine date of composition (tei -> fileDesc -> sourceDesc -> date).")
 
                 # --------------------------------- #
                 # letter body                       #
