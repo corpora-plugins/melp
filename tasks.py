@@ -257,13 +257,15 @@ Delete Existing:   {1}
                 if len(interlocutors) == 2:
                     sender_uri = interlocutors[0].attrs.get('ref')
                     if sender_uri:
-                        sender_id, log = register_entity(corpus, 'PERSON', sender_uri)
+                        sender, log = register_entity(corpus, 'PERSON', sender_uri)
+                        sender_id = sender.id
                         if log == "found":
                             letter.author = corpus.get_content_dbref('Entity', sender_id)
 
                     recip_uri = interlocutors[1].attrs.get('ref')
                     if recip_uri:
-                        recip_id, log = register_entity(corpus, 'PERSON', recip_uri)
+                        recip, log = register_entity(corpus, 'PERSON', recip_uri)
+                        recip_id = recip.id
                         if log == "found":
                             letter.recipient = corpus.get_content_dbref('Entity', recip_id)
 
@@ -370,7 +372,7 @@ def register_entity(corpus, entity_type, uri):
             xml_id = uri_parts[1]
             entity = corpus.get_content('Entity', {'entity_type': entity_type, 'xml_id': xml_id}, single_result=True)
             if entity:
-                return str(entity.id), "found"
+                return entity, "found"
             else:
                 return None, "Error referencing {0} with URI {1}: XML ID {2} not found in {3}".format(
                     entity_type,
@@ -462,17 +464,17 @@ def parse_letter_tei(corpus, tag, entities=[], info=[]):
                 elif tag.name == 'title':
                     entity_type = 'WORK'
 
-                entity_id, log = register_entity(corpus, entity_type, tag['ref'])
-                html += '''<span class="entity" data-entity-type="{entity_type}" data-entity-uri="{uri}" data-entity-id="{id}">'''.format(
+                entity, log = register_entity(corpus, entity_type, tag['ref'])
+                html += '''<span class="entity" data-entity_type="{entity_type}" data-entity_uri="{uri}" data-entity_id="{id}">'''.format(
                     entity_type=entity_type,
                     uri=tag['ref'],
-                    id=entity_id
+                    id=entity.xml_id
                 )
                 html += "".join([parse_letter_tei(corpus, child, entities, info) for child in tag])
                 html += "</span>"
 
-                if entity_id:
-                    entities.append(entity_id)
+                if entity:
+                    entities.append(entity.id)
                     if log != 'found':
                         info.append(log)
 
