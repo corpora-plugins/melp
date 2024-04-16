@@ -465,18 +465,20 @@ def parse_letter_tei(corpus, tag, entities=[], info=[]):
                     entity_type = 'WORK'
 
                 entity, log = register_entity(corpus, entity_type, tag['ref'])
-                html += '''<span class="entity" data-entity_type="{entity_type}" data-entity_uri="{uri}" data-entity_id="{id}">'''.format(
-                    entity_type=entity_type,
-                    uri=tag['ref'],
-                    id=entity.xml_id
-                )
+                if entity:
+                    html += '''<span class="entity" data-entity_type="{entity_type}" data-entity_uri="{uri}" data-entity_id="{id}">'''.format(
+                        entity_type=entity_type,
+                        uri=tag['ref'],
+                        id=entity.xml_id
+                    )
+
                 html += "".join([parse_letter_tei(corpus, child, entities, info) for child in tag])
-                html += "</span>"
 
                 if entity:
+                    html += "</span>"
                     entities.append(entity.id)
-                    if log != 'found':
-                        info.append(log)
+                else:
+                    info.append(log)
 
             elif tag.name in simple_conversions:
                 html_tag = simple_conversions[tag.name]
