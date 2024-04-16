@@ -258,16 +258,18 @@ Delete Existing:   {1}
                     sender_uri = interlocutors[0].attrs.get('ref')
                     if sender_uri:
                         sender, log = register_entity(corpus, 'PERSON', sender_uri)
-                        sender_id = sender.id
-                        if log == "found":
-                            letter.author = corpus.get_content_dbref('Entity', sender_id)
+                        if sender:
+                            sender_id = sender.id
+                            if log == "found":
+                                letter.author = corpus.get_content_dbref('Entity', sender_id)
 
                     recip_uri = interlocutors[1].attrs.get('ref')
                     if recip_uri:
                         recip, log = register_entity(corpus, 'PERSON', recip_uri)
-                        recip_id = recip.id
-                        if log == "found":
-                            letter.recipient = corpus.get_content_dbref('Entity', recip_id)
+                        if recip:
+                            recip_id = recip.id
+                            if log == "found":
+                                letter.recipient = corpus.get_content_dbref('Entity', recip_id)
 
                 if not letter.author:
                     job.report("Unable to determine author (tei -> fileDesc -> sourceDesc -> persName[1st]).")
