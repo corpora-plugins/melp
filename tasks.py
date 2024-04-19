@@ -82,7 +82,7 @@ Delete Existing:   {1}
                 if letter.featured:
                     featured_letters.append(letter.identifier)
 
-                letter.delete()
+                letter.delete(track_deletions=False)
 
             entities = corpus.get_content('Entity', all=True)
             for ent in entities:
@@ -227,28 +227,6 @@ Delete Existing:   {1}
                     job.report("Unable to determine title of letter (tei -> fileDesc -> titleStmt -> title).")
 
                 # --------------------------------- #
-                # repository                        #
-                # --------------------------------- #
-                org_tag = file_desc.editionStmt.respStmt.find('orgName')
-                repo_added = False
-                if org_tag:
-                    org_name = org_tag.get_text().strip()
-                    if org_name:
-                        if 'ref' in org_tag.attrs:
-                            org_uri = org_tag['ref']
-
-                        org = corpus.get_or_create_content('Entity', {'name': org_name, 'entity_type': 'ORG'})
-                        if org_uri not in org.uris:
-                            org.uris.append(org_uri)
-                            org.save()
-
-                        letter.repository = org.id
-                        repo_added = True
-
-                if not repo_added:
-                    job.report("Unable to determine the repository for this letter (tei -> fileDesc -> editionStmt -> respStmt -> orgName).")
-
-                # --------------------------------- #
                 # author and recipient              #
                 # --------------------------------- #
                 interlocutors = file_desc.sourceDesc.find_all("persName")
@@ -280,16 +258,87 @@ Delete Existing:   {1}
                 # --------------------------------- #
                 # date of composition               #
                 # --------------------------------- #
-                date_tag = file_desc.sourceDesc.find("date")
+                date_tag = file_desc.sourceDesc.msDesc.head.find("date")
                 if date_tag and hasattr(date_tag, 'attrs') and 'when' in date_tag.attrs:
                     when = date_tag['when']
                     if 'xx' in when:
                         when = when.replace('xx', '01')
                         job.report(f"Date of composition regularized from {date_tag['when']} to {when}!")
-                    letter.date_composed = parser.parse(when)
+
+                    try:
+                        letter.date_composed = parser.parse(when)
+                    except:
+                        job.report(f"Date of composition is malformed: {when}")
 
                 if not letter.date_composed:
-                    job.report("Unable to determine date of composition (tei -> fileDesc -> sourceDesc -> date).")
+                    job.report("Unable to determine date of composition (tei -> fileDesc -> sourceDesc -> msDesc -> head -> date).")
+
+                # --------------------------------- #
+                # repository                        #
+                # --------------------------------- #
+                org_tag = file_desc.sourceDesc.msDesc.msIdentifier.find('repository')
+                org_uri = None
+                repo_added = False
+                if org_tag:
+                    org_name = org_tag.get_text().strip()
+                    if org_name:
+                        if 'ref' in org_tag.attrs:
+                            org_uri = org_tag['ref']
+
+                        org = corpus.get_or_create_content('Entity', {'name': org_name, 'entity_type': 'ORG'})
+                        if org_uri and org_uri not in org.uris:
+                            org.uris.append(org_uri)
+                            org.save()
+
+                        letter.repository = org.id
+                        repo_added = True
+
+                if not repo_added:
+                    job.report("Unable to determine the repository for this letter (tei -> fileDesc -> sourceDesc -> msDesc -> msIdentifier -> repository).")
+
+                # --------------------------------- #
+                # collection                        #
+                # --------------------------------- #
+                coll_tag = file_desc.sourceDesc.msDesc.msIdentifier.find('collection')
+                if coll_tag and coll_tag.get_text().strip():
+                    letter.collection = coll_tag.get_text().strip()
+                else:
+                    job.report("Unable to determine the collection for this letter (tei -> teiheader -> fileDesc -> sourceDesc -> msDesc -> msIdentifier -> collection).")
+
+                # --------------------------------- #
+                # transcriber                       #
+                # --------------------------------- #
+                trans_tag = file_desc.titleStmt.respStmt.find('persName')
+                if trans_tag and trans_tag.get_text().strip():
+                    letter.transcriber = trans_tag.get_text().strip()
+                else:
+                    job.report("Unable to determine the transcriber for this letter (tei -> teiheader -> fileDesc -> titleStmt -> respStmt -> persName).")
+
+                # --------------------------------- #
+                # date of transcription             #
+                # --------------------------------- #
+                trans_date_tag = file_desc.editionStmt.edition.find("date")
+                if trans_date_tag and hasattr(trans_date_tag, 'attrs') and 'when' in trans_date_tag.attrs:
+                    when = trans_date_tag['when']
+
+                    try:
+                        letter.date_transcribed = parser.parse(when)
+                    except:
+                        job.report(f"Date of composition is malformed: {when}")
+
+                if not letter.date_transcribed:
+                    job.report(
+                        "Unable to determine date for first edition in TEI (tei -> fileDesc -> editionStmt -> edition -> date).")
+
+                # --------------------------------- #
+                # general editors                   #
+                # --------------------------------- #
+                gened_tag = file_desc.titleStmt.find('principal')
+                if gened_tag and gened_tag.get_text().strip():
+                    letter.general_editors = gened_tag.get_text().strip()
+                else:
+                    job.report(
+                        "Unable to determine the general editors for this letter (tei -> teiheader -> fileDesc -> titleStmt -> principal).")
 
                 # --------------------------------- #
                 # letter body                       #
