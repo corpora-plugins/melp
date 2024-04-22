@@ -498,15 +498,17 @@ def parse_letter_tei(corpus, tag, entities=[], info=[]):
             elif tag.name == 'choice':
                 original = tag.find('orig')
                 if original:
-                    original = original.get_text().strip().replace('"', '\"')
+                    original = "".join([parse_letter_tei(corpus, child, entities, info) for child in original.children])
                 else:
                     original = ""
 
                 regularized = tag.find('reg')
                 if regularized:
-                    html += '''<span class="regularized" data-original="{0}">'''.format(original)
-                    html += "".join([parse_letter_tei(corpus, child, entities, info) for child in regularized.children])
-                    html += "</span>"
+                    regularized = "".join([parse_letter_tei(corpus, child, entities, info) for child in regularized.children])
+                else:
+                    regularized = ""
+
+                html += f'''<span class="regularized" data-regularized="{regularized}">{original}</span>'''
 
             elif tag.name in ['persName', 'placeName', 'title'] and 'ref' in tag.attrs:
                 entity_type = 'PERSON'
