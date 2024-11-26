@@ -327,8 +327,7 @@ Delete Existing:   {1}
                         job.report(f"Date of composition is malformed: {when}")
 
                 if not letter.date_transcribed:
-                    job.report(
-                        "Unable to determine date for first edition in TEI (tei -> fileDesc -> editionStmt -> edition -> date).")
+                    job.report("Unable to determine date for first edition in TEI (tei -> fileDesc -> editionStmt -> edition -> date).")
 
                 # --------------------------------- #
                 # general editors                   #
@@ -337,8 +336,7 @@ Delete Existing:   {1}
                 if gened_tag and gened_tag.get_text().strip():
                     letter.general_editors = gened_tag.get_text().strip()
                 else:
-                    job.report(
-                        "Unable to determine the general editors for this letter (tei -> teiheader -> fileDesc -> titleStmt -> principal).")
+                    job.report("Unable to determine the general editors for this letter (tei -> teiheader -> fileDesc -> titleStmt -> principal).")
 
                 # --------------------------------- #
                 # letter body                       #
@@ -465,7 +463,6 @@ def parse_letter_tei(corpus, tag, entities=[], info=[]):
         'add': 'span:addition',
         'closer': 'div:closer',
         'postscript': 'div:postscript',
-        'note': 'span:note',
         'address': 'span:address',
         'addrLine': 'br/',
         'quote': 'quote',
@@ -478,7 +475,7 @@ def parse_letter_tei(corpus, tag, entities=[], info=[]):
     ]
 
     ignore_altogether = [
-        'figure', 'figDesc'
+        'figure', 'figDesc', 'note'
     ]
 
     if tag.name:
