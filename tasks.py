@@ -477,6 +477,10 @@ def parse_letter_tei(corpus, tag, entities=[], info=[]):
         'body', 'div', 'orig', 'reg', 'name', 'forename', 'surname'
     ]
 
+    ignore_altogether = [
+        'figure', 'figDesc'
+    ]
+
     if tag.name:
         if tag.name in silent:
             for child in tag.children:
@@ -559,6 +563,10 @@ def parse_letter_tei(corpus, tag, entities=[], info=[]):
             # tags to ignore (but keep content inside)
             elif tag.name in silent:
                 html += "".join([parse_letter_tei(corpus, child, entities, info) for child in tag])
+
+            # tags to ignore (including content inside!)
+            elif tag.name in ignore_altogether:
+                pass
 
             else:
                 info.append("Unhandled tag: {0}".format(log_tag(tag)))
