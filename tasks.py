@@ -86,7 +86,7 @@ Delete Existing:   {1}
 
             entities = corpus.get_content('Entity', all=True)
             for ent in entities:
-                ent.delete()
+                ent.delete(track_deletions=False)
 
         # ingest people from personography
         person_count = 0
@@ -107,7 +107,15 @@ Delete Existing:   {1}
                     entity.xml_id = xml_id
 
                 entity.entity_type = 'PERSON'
-                entity.name = person.persName.get_text().strip()
+
+                # determine name, handling the possibility of a variant name
+                full_name = person.persName.get_text().strip()
+                variant_name = person.persName.find('addName')
+                if variant_name:
+                    variant_name = variant_name.get_text().strip()
+                    full_name = full_name.replace(variant_name, f" ({variant_name})")
+
+                entity.name = full_name
 
                 uris = person.find_all('idno')
                 for uri in uris:
@@ -229,37 +237,39 @@ Delete Existing:   {1}
                 # --------------------------------- #
                 # author and recipient              #
                 # --------------------------------- #
-                interlocutors = file_desc.sourceDesc.find_all("persName")
-                sender_id = None
-                recip_id = None
-                if len(interlocutors) == 2:
-                    sender_uri = interlocutors[0].attrs.get('ref')
+                author_and_recipient = []
+                sender_tag = tei.select_one('teiHeader profileDesc correspAction[type=sent] persName')
+                recipient_tag = tei.select_one('teiHeader profileDesc correspAction[type=received] persName')
+
+                if sender_tag:
+                    sender_uri = sender_tag.attrs.get('ref')
                     if sender_uri:
                         sender, log = register_entity(corpus, 'PERSON', sender_uri)
                         if sender:
-                            sender_id = sender.id
+                            author_and_recipient.append(sender.id)
                             if log == "found":
-                                letter.author = corpus.get_content_dbref('Entity', sender_id)
+                                letter.author = corpus.get_content_dbref('Entity', sender.id)
 
-                    recip_uri = interlocutors[1].attrs.get('ref')
+                if recipient_tag:
+                    recip_uri = recipient_tag.attrs.get('ref')
                     if recip_uri:
                         recip, log = register_entity(corpus, 'PERSON', recip_uri)
                         if recip:
-                            recip_id = recip.id
+                            author_and_recipient.append(recip.id)
                             if log == "found":
-                                letter.recipient = corpus.get_content_dbref('Entity', recip_id)
+                                letter.recipient = corpus.get_content_dbref('Entity', recip.id)
 
                 if not letter.author:
-                    job.report("Unable to determine author (tei -> fileDesc -> sourceDesc -> persName[1st]).")
+                    job.report("Unable to determine author (tei -> teiHeader -> profileDesc -> correspAction[type=sent] persName).")
 
                 if not letter.recipient:
-                    job.report("Unable to determine recipient (tei -> fileDesc -> sourceDesc -> persName[2nd]).")
+                    job.report("Unable to determine recipient (tei -> teiHeader -> profileDesc -> correspAction[type=received] persName).")
 
                 # --------------------------------- #
                 # date of composition               #
                 # --------------------------------- #
-                date_tag = file_desc.sourceDesc.msDesc.head.find("date")
-                if date_tag and hasattr(date_tag, 'attrs') and 'when' in date_tag.attrs:
+                date_tag = file_desc.select_one('sourceDesc msDesc head date[when]')
+                if date_tag:
                     when = date_tag['when']
                     if 'xx' in when:
                         when = when.replace('xx', '01')
@@ -317,8 +327,8 @@ Delete Existing:   {1}
                 # --------------------------------- #
                 # date of transcription             #
                 # --------------------------------- #
-                trans_date_tag = file_desc.editionStmt.edition.find("date")
-                if trans_date_tag and hasattr(trans_date_tag, 'attrs') and 'when' in trans_date_tag.attrs:
+                trans_date_tag = file_desc.select_one('editionStmt edition date[when]')
+                if trans_date_tag:
                     when = trans_date_tag['when']
 
                     try:
@@ -361,7 +371,7 @@ Delete Existing:   {1}
                 # associate entities
                 entities = list(set(entities))
                 for ent_id in entities:
-                    if not ent_id in [sender_id, recip_id]:
+                    if not ent_id in author_and_recipient:
                         letter.entities_mentioned.append(corpus.get_content_dbref('Entity', ent_id))
 
                 # check if letter is featured
