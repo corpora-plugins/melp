@@ -1,12 +1,14 @@
-import requests
-import json
+import os
+import logging
 import traceback
-from corpus import *
 from bs4 import BeautifulSoup
 from django.utils.text import slugify
 from timeit import default_timer as timer
+from dateutil import parser
 from .content import REGISTRY as MELP_CONTENT_TYPE_SCHEMA
 from manager.utilities import _contains
+from corpus import Job
+
 
 REGISTRY = {
     "Import MELP Data from TEI Repo": {
