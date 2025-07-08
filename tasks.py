@@ -223,7 +223,7 @@ Delete Existing:   {1}
             with open(letter_file, 'r', encoding='utf-8') as tei_in:
                 tei = BeautifulSoup(tei_in, 'xml')
 
-            if tei:
+            if tei and tei.teiHeader:
                 file_desc = tei.teiHeader.fileDesc
 
                 # --------------------------------- #
@@ -384,6 +384,9 @@ Delete Existing:   {1}
                 letter.save()
 
                 job.set_status('running', percent_complete=int(((letter_index + 1) / len(letter_files)) * 100))
+
+            else:
+                job.report("ERROR parsing TEI for {0}. Malformed XML or missing TEI Header.".format(os.path.basename(letter_file)))
 
 
         # ENTITY CLEANUP
