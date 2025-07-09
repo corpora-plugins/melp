@@ -205,7 +205,7 @@ Delete Existing:   {1}
         # ingest letters
         job.set_status('running', percent_complete=10)
         letter_path = tei_repo.path + '/Encoded Letters'
-        letter_files = [letter_path + '/' + filename for filename in os.listdir(letter_path)]
+        letter_files = [letter_path + '/' + filename for filename in os.listdir(letter_path) if filename.lower().endswith('.xml')]
 
         for letter_index in range(0, len(letter_files)):
             letter_file = letter_files[letter_index]
